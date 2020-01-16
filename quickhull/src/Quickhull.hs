@@ -52,19 +52,22 @@ initialPartition points =
 
     -- * Exercise 2
     isUpper :: Acc (Vector Bool)
-    isUpper = undefined
+    isUpper = map (pointIsLeftOfLine line) points
 
     isLower :: Acc (Vector Bool)
-    isLower = undefined
+    isLower = zipWith (\p b -> f p b) points (map not isUpper)
+        where f p1 b = not b
+              f p2 b = not b
+              f _  b = b
 
     -- * Exercise 3
     lowerIndices :: Acc (Vector Int)
-    lowerIndices = undefined
+    lowerIndices = prescanl (+) 0 (map boolToInt isLower)
 
     -- * Exercise 4
     upperIndices :: Acc (Vector Int)
     countUpper :: Acc (Scalar Int)
-    T2 upperIndices countUpper = undefined
+    T2 upperIndices countUpper = scanl' (+) 0 (map boolToInt isUpper)
 
     -- * Exercise 5
     permutation :: Acc (Vector (Z :. Int))
@@ -72,20 +75,23 @@ initialPartition points =
       let
         f :: Exp Point -> Exp Bool -> Exp Int -> Exp Int -> Exp (Z :. Int)
         f p upper idxLower idxUpper
-          = undefined
+          = cond (p == p1) (index1 0) $
+            cond (p == p2) (index1 $ 1 + the countUpper) $
+            cond (upper)   (index1 $ 1 + idxUpper) $
+            (index1 $ 1 + the countUpper + 1 + idxLower)
       in
         zipWith4 f points isUpper lowerIndices upperIndices
 
     -- * Exercise 6
     empty :: Acc (Vector Point)
-    empty = undefined
+    empty = fill (index1 ((unindex1 (shape points)) + 1)) p1
 
     newPoints :: Acc (Vector Point)
     newPoints = permute const empty (permutation !) points
 
     -- * Exercise 7
     headFlags :: Acc (Vector Bool)
-    headFlags = undefined
+    headFlags = map (\p -> cond (p == p1 || p == p2) (lift True) $ (lift False)) newPoints
   in
     T2 headFlags newPoints
 
