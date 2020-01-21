@@ -124,10 +124,16 @@ propagateLine (T2 headFlags points) = zip vecP1 vecP2
 
 -- * Exercise 11
 shiftHeadFlagsL :: Acc (Vector Bool) -> Acc (Vector Bool)
-shiftHeadFlagsL flags = undefined
-
+shiftHeadFlagsL flags = generate (index1 lengthFlag) (\i -> getVal $ unindex1 i)
+  where
+    lengthFlag = unindex1 (shape flags)
+    getVal i = cond (i == lengthFlag - 1) (lift False) $ flags !! (i + 1)
+    
 shiftHeadFlagsR :: Acc (Vector Bool) -> Acc (Vector Bool)
-shiftHeadFlagsR flags = undefined
+shiftHeadFlagsR flags = generate (index1 lengthFlag) (\i -> getVal $ unindex1 i)
+  where
+    lengthFlag = unindex1 (shape flags)
+    getVal i = cond (i == 0) (lift False) $ flags !! (i - 1)
 
 partition :: Acc SegmentedPoints -> Acc SegmentedPoints
 partition (T2 headFlags points) =
@@ -140,14 +146,17 @@ partition (T2 headFlags points) =
 
     -- * Exercise 12
     furthest :: Acc (Vector Point)
-    furthest = undefined
+    furthest = propagateR headFlagsL $ map snd $ segmentedPostscanl max headFlagsR pointList
+      where
+        pointList :: Acc (Vector (Int, Point)) 
+        pointList = zipWith (\line point -> T2 (nonNormalizedDistance line point) point) vecLine points
 
     -- * Exercise 13
     isLeft :: Acc (Vector Bool)
-    isLeft = undefined
+    isLeft = zipWith3 (\(T2 p1 p2) pf point -> pointIsLeftOfLine (T2 p1 pf) point) vecLine furthest points
 
     isRight :: Acc (Vector Bool)
-    isRight = undefined
+    isRight = zipWith3 (\(T2 p1 p2) pf point -> pointIsLeftOfLine (T2 pf p2) point) vecLine furthest points
 
     -- * Exercise 14
     segmentIdxLeft :: Acc (Vector Int)
