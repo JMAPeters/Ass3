@@ -98,15 +98,15 @@ initialPartition points =
 -- * Exercise 8
 segmentedPostscanl :: Elt a => (Exp a -> Exp a -> Exp a) -> Acc (Vector Bool) -> Acc (Vector a) -> Acc (Vector a)
 segmentedPostscanl f headFlags newPoints = map snd tupleResult
-  where                      tupleResult = postscanl (\x y -> segmented x y) undef zippedList
-                              zippedList = zip headFlags newPoints
-           segmented (T2 fx x) (T2 fy y) = T2 (fx || fy) (fy ? (y, f x y))
+  where tupleResult = postscanl (\x y -> segmented x y) Unsafe.undef zippedList
+        zippedList = zip headFlags newPoints
+        segmented (T2 fx x) (T2 fy y) = T2 (fx || fy) (fy ? (y, f x y))
 
 segmentedPostscanr :: Elt a => (Exp a -> Exp a -> Exp a) -> Acc (Vector Bool) -> Acc (Vector a) -> Acc (Vector a)
 segmentedPostscanr f headFlags newPoints = map snd tupleResult
-  where                      tupleResult = postscanr (\x y -> segmented x y) undef zippedList 
-                              zippedList = zip headFlags newPoints
-           segmented (T2 fx x) (T2 fy y) = T2 (fx || fy) (fx ? (x, f x y))
+  where tupleResult = postscanr (\x y -> segmented x y) Unsafe.undef zippedList 
+        zippedList = zip headFlags newPoints
+        segmented (T2 fx x) (T2 fy y) = T2 (fx || fy) (fx ? (x, f x y))
 
 -- * Exercise 9
 propagateL :: Elt a => Acc (Vector Bool) -> Acc (Vector a) -> Acc (Vector a)
