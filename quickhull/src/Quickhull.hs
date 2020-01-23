@@ -22,6 +22,9 @@ type Line = (Point, Point)
 
 type SegmentedPoints = (Vector Bool, Vector Point)
 
+input1 :: Acc (Vector Point)
+input1 = use $ fromList (Z :. 15) [(1,4),(8,19),(5,9),(7,9),(4,2),(3,9),(9,16),(1,5),(9,11),(4,0),(8,18),(8,7),(7,18),(6,18),(4,19)]
+
 pointIsLeftOfLine :: Exp Line -> Exp Point -> Exp Bool
 pointIsLeftOfLine (T2 (T2 x1 y1) (T2 x2 y2)) (T2 x y) = nx * x + ny * y > c
   where
@@ -55,10 +58,8 @@ initialPartition points =
     isUpper = map (pointIsLeftOfLine line) points
 
     isLower :: Acc (Vector Bool)
-    isLower = zipWith (\p b -> f p b) points (map not isUpper)
-        where f p1 b = not b
-              f p2 b = not b
-              f _  b = b
+    isLower = zipWith (\p pU -> cond (p == p1 || p == p2) (lift False) $ (not pU)) points isUpper
+
 
     -- * Exercise 3
     lowerIndices :: Acc (Vector Int)
@@ -160,22 +161,22 @@ partition (T2 headFlags points) =
 
     -- * Exercise 14
     segmentIdxLeft :: Acc (Vector Int)
-    segmentIdxLeft = undefined
+    segmentIdxLeft = segmentedPostscanl (+) headFlags (map boolToInt isLeft)
 
     segmentIdxRight :: Acc (Vector Int)
-    segmentIdxRight = undefined
+    segmentIdxRight = segmentedPostscanl (+) headFlags (map boolToInt isRight)
 
     -- * Exercise 15
     countLeft :: Acc (Vector Int)
-    countLeft = undefined
+    countLeft = propagateR headFlagsL segmentIdxLeft
 
     -- * Exercise 16
     segmentSize :: Acc (Vector Int)
-    segmentSize = undefined
+    segmentSize = zipWith4 (\flag flagl l r -> cond (flag) (1) $ cond (flagl) (l+r+1) $ 0) headFlags headFlagsL segmentIdxLeft segmentIdxRight
 
     segmentOffset :: Acc (Vector Int)
     size :: Acc (Scalar Int)
-    T2 segmentOffset size = undefined
+    T2 segmentOffset size = scanl' (+) 0 segmentSize
 
     -- * Exercise 17
     permutation :: Acc (Vector (Z :. Int))
@@ -183,30 +184,39 @@ partition (T2 headFlags points) =
       let
         f :: Exp Bool -> Exp Point -> Exp Point -> Exp Bool -> Exp Bool -> Exp Int -> Exp Int -> Exp Int -> Exp Int -> Exp (Z :. Int)
         f flag p furthestP left right offset cntLeft idxLeft idxRight
-          = undefined
+          = cond (flag)           (index1 offset) $
+            cond (p == furthestP) (index1 $ offset + cntLeft) $ 
+            cond (left)           (index1 $ offset + idxLeft - 1) $
+            cond (right)          (index1 $ offset + cntLeft  + idxRight) $
+            ignore
       in
         zipWith9 f headFlags points furthest isLeft isRight segmentOffset countLeft segmentIdxLeft segmentIdxRight
 
     -- * Exercise 18
     empty :: Acc (Vector Point)
-    empty = undefined
+    empty = fill (index1 (the size)) (T2 0 0)
 
     newPoints :: Acc (Vector Point)
-    newPoints = undefined
+    newPoints = permute const empty (permutation !) points
 
     -- * Exercise 19
     newHeadFlags :: Acc (Vector Bool)
-    newHeadFlags = undefined
+    newHeadFlags = zipWith3 f newPoints perFlag perFur
+      where
+        perFlag = permute const emptyflag (permutation !) headFlags
+        perFur = permute const empty (permutation !) furthest
+        f p flag fur = cond (flag || p == fur) (lift True) $ (lift False)
+        emptyflag = fill (shape empty) (lift False)
   in
     T2 newHeadFlags newPoints
 
 -- * Exercise 20
 condition :: Acc SegmentedPoints -> Acc (Scalar Bool)
-condition = undefined
+condition (T2 flags _) = map not (and flags)
 
 -- * Exercise 21
 quickhull' :: Acc (Vector Point) -> Acc (Vector Point)
-quickhull' = undefined
+quickhull' p = asnd (awhile condition partition (initialPartition p))
 
 quickhull :: Vector Point -> Vector Point
 quickhull = run1 quickhull'
